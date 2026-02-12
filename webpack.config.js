@@ -1,5 +1,6 @@
 const { merge } = require("webpack-merge");
 const singleSpaDefaults = require("webpack-config-single-spa-react-ts");
+const CopyPlugin = require("copy-webpack-plugin");
 const path = require("path");
 
 module.exports = (webpackConfigEnv, argv) => {
@@ -66,6 +67,18 @@ module.exports = (webpackConfigEnv, argv) => {
     cache: { type: "filesystem" },
     performance: { hints: false },
     externals: customExternals,
+    plugins: [
+      new CopyPlugin({
+        patterns: [
+          {
+            from: "public",
+            to: ".",
+            globOptions: { ignore: ["**/.DS_Store", "**/index.html"] },
+            noErrorOnMissing: true,
+          },
+        ],
+      }),
+    ],
     devServer: {
       ...(defaultConfig.devServer || {}),
       allowedHosts: "all",
