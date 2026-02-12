@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Header React — Standalone Dev</title>
+  <!-- ── Unified CSS: same as root-config at :9000 ── -->
+  <link rel="stylesheet" href="/ui-kit.css">
+  <link rel="stylesheet" href="/root-config.css">
+  <style>
+    /* minimal reset for standalone dev */
+    body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  </style>
+  <!-- ── Native import-map: bundle outputs ESM (libraryTarget: module) ── -->
+  <script type="importmap">
+    {
+      "imports": {
+        "single-spa": "/vendor/single-spa.min.js",
+        "@org/header-react": "/org-header-react.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <script type="module">
+    import * as singleSpa from 'single-spa';
+    singleSpa.registerApplication({
+      name: '@org/header-react',
+      app: function () { return import('@org/header-react'); },
+      activeWhen: ['/'],
+      customProps: {}
+    });
+    singleSpa.start({ urlRerouteOnly: true });
+  </script>
+</body>
+<!-- ── Dev Auth Panel ────────────────────────────────────────── -->
+  <script>
+    (function devAuthPanel() {
+      let STORAGE_KEY = 'mfe-auth-state';
+      let SCOPE_KEY = 'mfe-auth-storage';
+      let CHANNEL_NAME = 'mfe-auth-channel';
+
+      let MOCK_USER = {
+        id: 'dev-user-001',
+        email: 'developer@orchestra.dev',
+        name: 'Dev User',
+        displayName: 'Dev User',
+        photoURL: '',
+        roles: ['admin']
+      };
+
+      let MOCK_TOKENS = {
+        accessToken: 'dev-mock-access-token-' + Date.now(),
+        refreshToken: 'dev-mock-refresh-token-' + Date.now(),
+        expiresAt: Date.now() + 86400000
+      };
+
+      function readAuth() {
+        try {
+          let raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return null;
+          let parsed = JSON.parse(raw);
+          return (parsed && parsed.tokens && parsed.tokens.accessToken) ? parsed : null;
+        } catch (e) { return null; }
+      }
+
+      function writeAuth(state) {
+        try {
+          if (!state) {
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(SCOPE_KEY);
+          } else {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            localStorage.setItem(SCOPE_KEY, 'local');
+          }
+          // Notify via BroadcastChannel (same-tab won't get storage event)
+          try {
+            let bc = new BroadcastChannel(CHANNEL_NAME);
+            bc.postMessage({ type: 'auth:update', state: state });
+            setTimeout(function() { bc.close(); }, 100);
+          } catch (e) {}
+          // Reload to reinitialize React state cleanly
+          window.location.reload();
+        } catch (e) {
+          console.error('[Dev Auth]', e);
+        }
+      }
+
+      function createPanel() {
+        let auth = readAuth();
+        let isLoggedIn = Boolean(auth);
+
+        // Container
+        let panel = document.createElement('div');
+        panel.id = 'dev-auth-panel';
+        panel.style.cssText = [
+          'position:fixed',
+          'bottom:16px',
+          'left:16px',
+          'z-index:99999',
+          'display:flex',
+          'align-items:center',
+          'gap:8px',
+          'padding:8px 12px',
+          'border-radius:12px',
+          'font-family:ui-sans-serif,system-ui,sans-serif',
+          'font-size:12px',
+          'font-weight:500',
+          'backdrop-filter:blur(12px)',
+          'box-shadow:0 8px 24px rgba(0,0,0,0.12)',
+          'border:1px solid rgba(255,255,255,0.15)',
+          'background:rgba(15,23,42,0.9)',
+          'color:#94a3b8',
+          'transition:opacity .2s'
+        ].join(';');
+
+        // Status dot
+        let dot = document.createElement('span');
+        dot.style.cssText = [
+          'width:8px',
+          'height:8px',
+          'border-radius:50%',
+          'flex-shrink:0',
+          'background:' + (isLoggedIn ? '#34d399' : '#f87171')
+        ].join(';');
+        panel.appendChild(dot);
+
+        // Label
+        let label = document.createElement('span');
+        label.style.cssText = 'color:#e2e8f0;white-space:nowrap';
+        if (isLoggedIn) {
+          let user = auth.user || {};
+          label.textContent = user.displayName || user.email || 'Authenticated';
+        } else {
+          label.textContent = 'Not authenticated';
+        }
+        panel.appendChild(label);
+
+        // Separator
+        let sep = document.createElement('span');
+        sep.style.cssText = 'width:1px;height:16px;background:#334155;flex-shrink:0';
+        panel.appendChild(sep);
+
+        if (isLoggedIn) {
+          // Sign Out button
+          let btnOut = document.createElement('button');
+          btnOut.textContent = 'Sign Out';
+          btnOut.style.cssText = [
+            'border:none',
+            'background:#dc2626',
+            'color:#fff',
+            'padding:4px 12px',
+            'border-radius:6px',
+            'font-size:11px',
+            'font-weight:600',
+            'cursor:pointer',
+            'transition:background .15s',
+            'white-space:nowrap'
+          ].join(';');
+          btnOut.onmouseenter = function() { btnOut.style.background = '#b91c1c'; };
+          btnOut.onmouseleave = function() { btnOut.style.background = '#dc2626'; };
+          btnOut.onclick = function() { writeAuth(null); };
+          panel.appendChild(btnOut);
+        } else {
+          // Sign In button
+          let btnIn = document.createElement('button');
+          btnIn.textContent = 'Dev Sign In';
+          btnIn.style.cssText = [
+            'border:none',
+            'background:#3b82f6',
+            'color:#fff',
+            'padding:4px 12px',
+            'border-radius:6px',
+            'font-size:11px',
+            'font-weight:600',
+            'cursor:pointer',
+            'transition:background .15s',
+            'white-space:nowrap'
+          ].join(';');
+          btnIn.onmouseenter = function() { btnIn.style.background = '#2563eb'; };
+          btnIn.onmouseleave = function() { btnIn.style.background = '#3b82f6'; };
+          btnIn.onclick = function() {
+            writeAuth({ tokens: MOCK_TOKENS, user: MOCK_USER });
+          };
+          panel.appendChild(btnIn);
+        }
+
+        // DEV badge
+        let badge = document.createElement('span');
+        badge.textContent = 'DEV';
+        badge.style.cssText = [
+          'padding:2px 6px',
+          'border-radius:4px',
+          'font-size:9px',
+          'font-weight:700',
+          'letter-spacing:0.08em',
+          'background:rgba(251,191,36,0.15)',
+          'color:#fbbf24',
+          'line-height:1.4'
+        ].join(';');
+        panel.appendChild(badge);
+
+        document.body.appendChild(panel);
+      }
+
+      // Wait for DOM ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', createPanel);
+      } else {
+        createPanel();
+      }
+    })();
+  </script>
+</html>

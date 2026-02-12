@@ -1,0 +1,32 @@
+declare module "react" {
+  export const useEffect: (...args: unknown[]) => void;
+  export const useMemo: <T>(factory: () => T, deps?: unknown[]) => T;
+  export const useRef: <T>(value: T) => { current: T };
+  export const useState: <T>(init: T | (() => T)) => [T, (v: T) => void];
+  export const useCallback: <T extends (...args: any[]) => any>(fn: T, deps?: unknown[]) => T;
+}
+
+declare module "react-dom/client" {
+  export const createRoot: (el: Element) => { render: (node: unknown) => void };
+}
+
+declare module "single-spa-react" {
+  const singleSpaReact: (opts: Record<string, unknown>) => {
+    bootstrap: (...args: unknown[]) => Promise<unknown>;
+    mount: (...args: unknown[]) => Promise<unknown>;
+    unmount: (...args: unknown[]) => Promise<unknown>;
+  };
+  export default singleSpaReact;
+}
+
+declare module "@tanstack/react-query" {
+  export type UseQueryResult<TData> = { data?: TData };
+  export const useQuery: <TData>(opts: {
+    queryKey: readonly unknown[];
+    queryFn: () => Promise<TData>;
+  }) => UseQueryResult<TData>;
+  export const QueryClientProvider: (props: {
+    client: unknown;
+    children?: unknown;
+  }) => any;
+}

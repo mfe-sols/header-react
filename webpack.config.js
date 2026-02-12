@@ -1,0 +1,82 @@
+const { merge } = require("webpack-merge");
+const singleSpaDefaults = require("webpack-config-single-spa-react-ts");
+const path = require("path");
+
+module.exports = (webpackConfigEnv, argv) => {
+  const defaultConfig = singleSpaDefaults({
+    orgName: "org",
+    projectName: "header-react",
+    webpackConfigEnv,
+    argv,
+    outputSystemJS: false,
+    disableHtmlGeneration: true,
+  });
+
+  defaultConfig.resolve = defaultConfig.resolve || {};
+
+  defaultConfig.resolve.extensions = [
+    ".ts", ".tsx", ".mjs", ".js", ".jsx", ".wasm", ".json",
+  ];
+
+  const baseExternals = defaultConfig.externals;
+  const allowBundle = new Set([
+    "@mfe-sols/auth",
+    "@mfe-sols/contracts",
+    "@mfe-sols/ui-kit",
+    "@mfe-sols/i18n",
+    "react",
+    "react-dom",
+    "react-dom/client",
+  ]);
+  const customExternals = (context, request, callback) => {
+    if (allowBundle.has(request)) {
+      return callback();
+    }
+    if (typeof baseExternals === "function") {
+      return baseExternals(context, request, callback);
+    }
+    if (Array.isArray(baseExternals)) {
+      for (const ext of baseExternals) {
+        if (typeof ext === "function") {
+          let handled = false;
+          ext(context, request, (err, result) => {
+            if (err) return callback(err);
+            if (result !== undefined) {
+              handled = true;
+              return callback(null, result);
+            }
+          });
+          if (handled) return;
+        } else if (typeof ext === "object" && ext[request]) {
+          return callback(null, ext[request]);
+        }
+      }
+      return callback();
+    }
+    return callback();
+  };
+
+  defaultConfig.plugins = (defaultConfig.plugins || []).filter(
+    (p) => p && p.constructor &&
+      p.constructor.name !== "StandaloneSingleSpaPlugin" &&
+      p.constructor.name !== "ForkTsCheckerWebpackPlugin"
+  );
+
+  return merge(defaultConfig, {
+    cache: { type: "filesystem" },
+    performance: { hints: false },
+    externals: customExternals,
+    devServer: {
+      ...(defaultConfig.devServer || {}),
+      allowedHosts: "all",
+      static: [
+        { directory: path.resolve(__dirname, "public"), publicPath: "/" },
+      ],
+      headers: {
+        ...((defaultConfig.devServer && defaultConfig.devServer.headers) || {}),
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-store",
+      },
+    },
+  });
+};
