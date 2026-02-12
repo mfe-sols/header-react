@@ -4,36 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Header React — Standalone Dev</title>
-  <!-- Unified CSS must come from system shell/root-config host -->
-  <script>
-    (function injectSystemStyles() {
-      var key = "mfe-system-origin";
-      var params = new URLSearchParams(window.location.search);
-      var fromQuery = params.get("system-origin") || params.get("systemOrigin");
-      var fromStorage = "";
-      try {
-        fromStorage = localStorage.getItem(key) || "";
-      } catch (e) {}
-      var fallback =
-        window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-          ? "http://localhost:9000"
-          : "https://mfe-root-config.vercel.app";
-      var origin = (fromQuery || fromStorage || fallback).replace(/\/+$/, "");
-      try {
-        localStorage.setItem(key, origin);
-      } catch (e) {}
-      var version = params.get("system-css-version") || params.get("cssv") || String(Date.now());
-      var inject = function (path) {
-        var link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.crossOrigin = "anonymous";
-        link.href = origin + path + "?v=" + encodeURIComponent(version);
-        document.head.appendChild(link);
-      };
-      inject("/ui-kit.css");
-      inject("/root-config.css");
-    })();
-  </script>
+  <!-- ── Unified CSS: same as root-config at :9000 ── -->
+  <link rel="stylesheet" href="/ui-kit.css">
+  <link rel="stylesheet" href="/root-config.css">
   <style>
     /* minimal reset for standalone dev */
     body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
