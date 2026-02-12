@@ -21,8 +21,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0
       '@mfe-sols/ui-kit':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.1.1
+        version: 0.1.1
       '@tanstack/query-core':
         specifier: ^5.62.0
         version: 5.90.20
@@ -679,8 +679,8 @@ packages:
   '@mfe-sols/i18n@0.1.0':
     resolution: {integrity: sha512-AcsVVNsl3alLyce0B7W11hsFuLPiltI7FTKXzD57aP9nemM4Xe8Z6fukgpy+RbhaeLy7wzS8n3XakKDc+G7fXg==, tarball: https://npm.pkg.github.com/download/@mfe-sols/i18n/0.1.0/0015e75efc731ffb0343e5dfd9aaeaf8ea58d985}
 
-  '@mfe-sols/ui-kit@0.1.0':
-    resolution: {integrity: sha512-+5PPW/bSbYR3+EKq4t0yng1N4Te5pFcHUQHrXGoT5KjlZUXtGGpfAemgT4aVbnfxPAu3BDWwUtQsMy0EJ6MMng==, tarball: https://npm.pkg.github.com/download/@mfe-sols/ui-kit/0.1.0/9d90c51a41a4b41dda79eccf944227be722f275f}
+  '@mfe-sols/ui-kit@0.1.1':
+    resolution: {integrity: sha512-boxXsTg2BtHC162hHV3xJC9YQ9g+wpaidEcHPQi8ei8Gekun5z2cJDJz0Hdg7lKiKdo6xTl9VJ94qusVDGLNeg==, tarball: https://npm.pkg.github.com/download/@mfe-sols/ui-kit/0.1.1/b72b8829acefabee8197d7dcd6e409122d158fe8}
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
@@ -3272,7 +3272,7 @@ snapshots:
 
   '@mfe-sols/i18n@0.1.0': {}
 
-  '@mfe-sols/ui-kit@0.1.0': {}
+  '@mfe-sols/ui-kit@0.1.1': {}
 
   '@polka/url@1.0.0-next.29': {}
 
