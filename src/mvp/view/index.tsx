@@ -138,10 +138,13 @@ const IconBroadcast = ({ style }: { style?: React.CSSProperties }) => (
 );
 
 /* ── NavItem with React-controlled hover ─────────────────────────── */
-const NavItem: React.FC<{
+type NavItemProps = {
   menu: MegaMenuItem;
   isDark: boolean;
-}> = ({
+  key?: React.Key;
+};
+
+const NavItem: React.FC<NavItemProps> = ({
   menu,
   isDark,
 }) => {
