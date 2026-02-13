@@ -7,13 +7,13 @@
   <!-- Unified CSS from system shell with safe local fallback -->
   <script>
     (function injectSystemStyles() {
-      var key = "mfe-system-origin:header-react";
-      var params = new URLSearchParams(window.location.search);
+      let key = "mfe-system-origin:header-react";
+      let params = new URLSearchParams(window.location.search);
 
-      var normalizeOrigin = function (value) {
+      let normalizeOrigin = function (value) {
         if (!value) return "";
         try {
-          var parsed = new URL(value, window.location.origin);
+          let parsed = new URL(value, window.location.origin);
           if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
           return parsed.origin;
         } catch (e) {
@@ -21,11 +21,11 @@
         }
       };
 
-      var isAllowedOrigin = function (origin) {
+      let isAllowedOrigin = function (origin) {
         if (!origin) return false;
         try {
-          var parsed = new URL(origin);
-          var host = parsed.hostname.toLowerCase();
+          let parsed = new URL(origin);
+          let host = parsed.hostname.toLowerCase();
           if (host === "localhost" || host === "127.0.0.1") return true;
           return host === "mfe-root-config.vercel.app";
         } catch (e) {
@@ -33,20 +33,20 @@
         }
       };
 
-      var fromQuery = normalizeOrigin(
+      let fromQuery = normalizeOrigin(
         params.get("system-origin") || params.get("systemOrigin")
       );
-      var fromStorage = "";
+      let fromStorage = "";
       try {
         fromStorage = normalizeOrigin(localStorage.getItem(key) || "");
       } catch (e) {}
 
-      var fallbackOrigin =
+      let fallbackOrigin =
         window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
           ? "http://localhost:9000"
           : "https://mfe-root-config.vercel.app";
 
-      var origin = isAllowedOrigin(fromQuery)
+      let origin = isAllowedOrigin(fromQuery)
         ? fromQuery
         : isAllowedOrigin(fromStorage)
         ? fromStorage
@@ -56,25 +56,25 @@
         localStorage.setItem(key, origin);
       } catch (e) {}
 
-      var versionRaw = params.get("system-css-version") || params.get("cssv") || "stable";
-      var version = /^[A-Za-z0-9._-]{1,64}$/.test(versionRaw) ? versionRaw : "stable";
+      let versionRaw = params.get("system-css-version") || params.get("cssv") || "stable";
+      let version = /^[A-Za-z0-9._-]{1,64}$/.test(versionRaw) ? versionRaw : "stable";
 
       if (origin !== window.location.origin) {
-        var preconnect = document.createElement("link");
+        let preconnect = document.createElement("link");
         preconnect.rel = "preconnect";
         preconnect.href = origin;
         preconnect.crossOrigin = "anonymous";
         document.head.appendChild(preconnect);
       }
 
-      var injectWithFallback = function (remotePath, localPath) {
-        var link = document.createElement("link");
+      let injectWithFallback = function (remotePath, localPath) {
+        let link = document.createElement("link");
         link.rel = "stylesheet";
         link.crossOrigin = "anonymous";
         link.referrerPolicy = "no-referrer";
         link.href = origin + remotePath + "?v=" + encodeURIComponent(version);
 
-        var retried = false;
+        let retried = false;
         link.onerror = function () {
           if (retried) return;
           retried = true;
@@ -148,10 +148,27 @@
 <!-- ── Dev Auth Panel ────────────────────────────────────────── -->
   <script>
     (function devAuthPanel() {
-      var isLocalHost =
+      let isLocalHost =
         window.location.hostname === "localhost" ||
         window.location.hostname === "127.0.0.1";
-      if (!isLocalHost) return;
+      let ENABLE_KEY = 'mfe-dev-auth-panel-enabled';
+      let params = new URLSearchParams(window.location.search);
+      let enableFromQuery = params.get('dev-auth') === '1' || params.get('devAuth') === '1';
+      let disableFromQuery = params.get('dev-auth') === '0' || params.get('devAuth') === '0';
+
+      if (enableFromQuery) {
+        try { localStorage.setItem(ENABLE_KEY, '1'); } catch (e) {}
+      }
+      if (disableFromQuery) {
+        try { localStorage.removeItem(ENABLE_KEY); } catch (e) {}
+      }
+
+      let enabledForLive = false;
+      try {
+        enabledForLive = localStorage.getItem(ENABLE_KEY) === '1';
+      } catch (e) {}
+
+      if (!isLocalHost && !enabledForLive) return;
 
       let STORAGE_KEY = 'mfe-auth-state';
       let SCOPE_KEY = 'mfe-auth-storage';
