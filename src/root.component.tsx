@@ -13,6 +13,9 @@ import { createPresenter } from "./mvp/presenter";
 import { createQueryClient } from "./mvp/service";
 import { AppView } from "./mvp/view";
 
+const getThemeFromElement = (target: Element | null): "light" | "dark" =>
+  target?.getAttribute("data-theme") === "dark" ? "dark" : "light";
+
 export default function Root() {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [locale, setLocaleState] = useState(() => {
@@ -75,57 +78,103 @@ export default function Root() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return undefined;
     const rootEl = rootRef.current;
     if (!rootEl) return undefined;
-    const storageKey = "ds-theme:header-react";
-    try {
-      const stored = window.localStorage.getItem(storageKey);
-      if (stored === "dark") {
+    const shellRoot = document.documentElement;
+    const sharedKey = "ds-theme";
+    const legacyKey = "ds-theme:header-react";
+
+    const readStoredTheme = (): "light" | "dark" | null => {
+      try {
+        const shared = window.localStorage.getItem(sharedKey);
+        if (shared === "dark" || shared === "light") return shared;
+        const legacy = window.localStorage.getItem(legacyKey);
+        if (legacy === "dark" || legacy === "light") return legacy;
+      } catch {
+        return null;
+      }
+      return null;
+    };
+
+    const applyThemeToHeaderRoot = (mode: "light" | "dark") => {
+      if (mode === "dark") {
         rootEl.setAttribute("data-theme", "dark");
       } else {
         rootEl.removeAttribute("data-theme");
       }
-    } catch {
-      rootEl.removeAttribute("data-theme");
-    }
-    const syncTheme = () => {
-      setThemeMode(rootEl.getAttribute("data-theme") === "dark" ? "dark" : "light");
+      setThemeMode(mode);
     };
-    syncTheme();
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === storageKey) {
-        try {
-          const stored = window.localStorage.getItem(storageKey);
-          if (stored === "dark") {
-            rootEl.setAttribute("data-theme", "dark");
-          } else {
-            rootEl.removeAttribute("data-theme");
-          }
-        } catch {
-          rootEl.removeAttribute("data-theme");
+
+    const syncFromShell = () => {
+      const shellMode = getThemeFromElement(shellRoot);
+      if (shellRoot.hasAttribute("data-theme")) {
+        applyThemeToHeaderRoot(shellMode);
+        return;
+      }
+      const storedMode = readStoredTheme();
+      const mode = storedMode ?? shellMode;
+      if (storedMode) {
+        if (storedMode === "dark") {
+          shellRoot.setAttribute("data-theme", "dark");
+        } else {
+          shellRoot.removeAttribute("data-theme");
         }
-        syncTheme();
+      }
+      applyThemeToHeaderRoot(mode);
+    };
+
+    syncFromShell();
+
+    const shellThemeObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "attributes" && mutation.attributeName === "data-theme") {
+          applyThemeToHeaderRoot(getThemeFromElement(shellRoot));
+          return;
+        }
+      }
+    });
+    shellThemeObserver.observe(shellRoot, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== sharedKey && event.key !== legacyKey) return;
+      const storedMode = readStoredTheme() ?? "light";
+      if (storedMode === "dark") {
+        shellRoot.setAttribute("data-theme", "dark");
+      } else {
+        shellRoot.removeAttribute("data-theme");
       }
     };
+
     window.addEventListener("storage", onStorage);
     return () => {
+      shellThemeObserver.disconnect();
       window.removeEventListener("storage", onStorage);
     };
   }, []);
 
   const handleToggleTheme = useCallback(() => {
+    if (typeof window === "undefined") return;
     const rootEl = rootRef.current;
     if (!rootEl) return;
-    const storageKey = "ds-theme:header-react";
-    const next = rootEl.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    const shellRoot = document.documentElement;
+    const sharedKey = "ds-theme";
+    const legacyKey = "ds-theme:header-react";
+    const next = getThemeFromElement(shellRoot) === "dark" ? "light" : "dark";
     if (next === "dark") {
+      shellRoot.setAttribute("data-theme", "dark");
       rootEl.setAttribute("data-theme", "dark");
     } else {
+      shellRoot.removeAttribute("data-theme");
       rootEl.removeAttribute("data-theme");
     }
     setThemeMode(next);
     try {
-      window.localStorage.setItem(storageKey, next);
+      window.localStorage.setItem(sharedKey, next);
+      window.localStorage.setItem(legacyKey, next);
     } catch {
       // ignore storage errors
     }
