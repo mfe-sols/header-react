@@ -4,39 +4,60 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Header React — Standalone Dev</title>
-  <!-- Unified CSS must come from system shell/root-config host -->
-   <link rel="stylesheet" href="/ui-kit.css">
+  <!-- Standalone CSS (synced from @mfe-sols/ui-kit) -->
+  <link rel="stylesheet" href="/ui-kit.css">
   <link rel="stylesheet" href="/root-config.css">
 
   <style>
     /* minimal reset for standalone dev */
     body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+    #standalone-root { min-height: 100vh; }
   </style>
-  <!-- ── Native import-map: bundle outputs ESM (libraryTarget: module) ── -->
-  <script type="importmap">
-    {
-      "imports": {
-        "single-spa": "/vendor/single-spa.min.js",
-        "@org/header-react": "/org-header-react.js"
-      }
-    }
-  </script>
 </head>
 <body>
+  <div id="standalone-root"></div>
   <script type="module">
-    import * as singleSpa from 'single-spa';
-    singleSpa.registerApplication({
-      name: '@org/header-react',
-      app: function () { return import('@org/header-react'); },
-      activeWhen: ['/'],
-      customProps: {}
-    });
-    singleSpa.start({ urlRerouteOnly: true });
+    (async function mountStandalone() {
+      const root = document.getElementById('standalone-root') || document.body;
+      const props = {
+        name: '@org/header-react',
+        domElement: root,
+      };
+      try {
+        const app = await import('/org-header-react.js');
+        if (typeof app.bootstrap === 'function') {
+          await app.bootstrap(props);
+        }
+        if (typeof app.mount === 'function') {
+          await app.mount(props);
+        } else {
+          throw new Error('mount lifecycle not found in /org-header-react.js');
+        }
+
+        // Debug helper for manual remount testing in browser console.
+        window.__mfeHeaderStandaloneUnmount = async function () {
+          if (typeof app.unmount === 'function') {
+            await app.unmount(props);
+          }
+        };
+      } catch (error) {
+        console.error('[standalone] Failed to mount header-react', error);
+        root.innerHTML =
+          '<div style="padding:24px;font:14px/1.5 ui-sans-serif,system-ui,sans-serif;color:#b42318;">' +
+          'Failed to render standalone header module. Check browser console.' +
+          '</div>';
+      }
+    })();
   </script>
 </body>
 <!-- ── Dev Auth Panel ────────────────────────────────────────── -->
   <script>
     (function devAuthPanel() {
+      var isLocalHost =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
+      if (!isLocalHost) return;
+
       let STORAGE_KEY = 'mfe-auth-state';
       let SCOPE_KEY = 'mfe-auth-storage';
       let CHANNEL_NAME = 'mfe-auth-channel';
@@ -88,6 +109,8 @@
       }
 
       function createPanel() {
+        if (document.getElementById('dev-auth-panel')) return;
+
         let auth = readAuth();
         let isLoggedIn = Boolean(auth);
 

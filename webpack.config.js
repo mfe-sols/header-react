@@ -73,7 +73,7 @@ module.exports = (webpackConfigEnv, argv) => {
           {
             from: "public",
             to: ".",
-            globOptions: { ignore: ["**/.DS_Store", "**/index.html"] },
+            globOptions: { ignore: ["**/.DS_Store"] },
             noErrorOnMissing: true,
           },
         ],
