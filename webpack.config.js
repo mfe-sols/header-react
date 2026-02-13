@@ -9,7 +9,7 @@ module.exports = (webpackConfigEnv, argv) => {
     projectName: "header-react",
     webpackConfigEnv,
     argv,
-    outputSystemJS: true,
+    outputSystemJS: false,
     disableHtmlGeneration: true,
   });
 
