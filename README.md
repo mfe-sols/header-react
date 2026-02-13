@@ -23,6 +23,13 @@ pnpm start
 # → http://localhost:9012
 ```
 
+Standalone CSS is loaded from system shell (`root-config`) by default:
+- local fallback origin: `http://localhost:9000`
+- production fallback origin: `https://mfe-root-config.vercel.app`
+
+You can override in URL:
+`?system-origin=https://your-root-config-domain&cssv=123`
+
 ## Scripts
 
 | Command | Description |
