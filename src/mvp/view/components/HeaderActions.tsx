@@ -6,6 +6,10 @@ import { UserMenu } from "./UserMenu";
 type HeaderActionsProps = {
   locale: HeaderLocale;
   searchPlaceholder: string;
+  searchShortcut: string;
+  searchValue: string;
+  onSearchValueChange: (value: string) => void;
+  searchInputRef: { current: HTMLInputElement | null };
   isDark: boolean;
   onToggleTheme: () => void;
   onLocaleChange: (next: HeaderLocale) => void;
@@ -25,6 +29,10 @@ type HeaderActionsProps = {
 export const HeaderActions = ({
   locale,
   searchPlaceholder,
+  searchShortcut,
+  searchValue,
+  onSearchValueChange,
+  searchInputRef,
   isDark,
   onToggleTheme,
   onLocaleChange,
@@ -39,8 +47,15 @@ export const HeaderActions = ({
   <div className="hdr-actions">
     <label className="hdr-search hdr-actions-search">
       <span className="icon"><IconSearch /></span>
-      <input type="search" placeholder={searchPlaceholder} aria-label={searchPlaceholder} />
-      <kbd>⌘K</kbd>
+      <input
+        ref={searchInputRef}
+        type="search"
+        placeholder={searchPlaceholder}
+        aria-label={searchPlaceholder}
+        value={searchValue}
+        onChange={(event) => onSearchValueChange((event.target as HTMLInputElement).value)}
+      />
+      <kbd>{searchShortcut}</kbd>
     </label>
 
     <div className="hdr-actions-group hdr-actions-utility">

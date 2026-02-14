@@ -20,6 +20,7 @@ export const HeaderTopBar = ({
   onLocaleChange,
 }: HeaderTopBarProps) => {
   const marqueeRef = useRef<HTMLDivElement | null>(null);
+  const marqueeTrackRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const node = marqueeRef.current;
@@ -41,6 +42,40 @@ export const HeaderTopBar = ({
     return () => window.removeEventListener("resize", setRunway);
   }, []);
 
+  useEffect(() => {
+    const marquee = marqueeRef.current;
+    const track = marqueeTrackRef.current;
+    if (!track || !marquee) return;
+
+    const setPaused = (paused: boolean) => {
+      track.setAttribute("data-paused", paused ? "true" : "false");
+    };
+
+    const onVisibilityChange = () => {
+      setPaused(document.hidden);
+    };
+    onVisibilityChange();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    if (typeof IntersectionObserver !== "undefined") {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          setPaused(!entry.isIntersecting || document.hidden);
+        },
+        { threshold: 0.01 }
+      );
+      observer.observe(marquee);
+      return () => {
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+        observer.disconnect();
+      };
+    }
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+
   return (
     <div className="hdr-livebar">
       <span className="hdr-live-pill">
@@ -48,7 +83,7 @@ export const HeaderTopBar = ({
         {liveLabel}
       </span>
       <div ref={marqueeRef} className="hdr-marquee">
-        <div className="hdr-marquee-track">
+        <div ref={marqueeTrackRef} className="hdr-marquee-track" data-paused="false">
           <span>{marqueeLabel}</span>
           <span aria-hidden="true">{marqueeLabel}</span>
         </div>

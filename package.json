@@ -10,6 +10,8 @@
     "start:standalone": "webpack serve --env standalone",
     "build": "concurrently pnpm:build:*",
     "build:webpack": "webpack --mode=production",
+    "check:bundle-size": "node ./scripts/check-bundle-size.mjs",
+    "build:verify": "pnpm run build:webpack && pnpm run check:bundle-size",
     "build:types": "tsc",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit"

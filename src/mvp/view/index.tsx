@@ -1,7 +1,9 @@
 import {
+  useCallback,
   type CSSProperties,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import "./header.css";
@@ -10,6 +12,7 @@ import {
   type HeaderMenuGroupInput,
 } from "./header.config";
 import { getInitials } from "./helpers";
+import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { useEscapeKey } from "./hooks/useEscapeKey";
 import type { AuthUserInfo, HeaderLocale } from "./types";
 import {
@@ -30,6 +33,13 @@ type Props = {
   authUser?: AuthUserInfo | null;
   onSignOut?: () => void;
   menuOverride?: HeaderMenuGroupInput[] | null;
+  onSearchQueryChange?: (query: string) => void;
+};
+
+const resolveSearchShortcut = () => {
+  if (typeof navigator === "undefined") return "⌘K";
+  const platform = `${navigator.platform || ""} ${navigator.userAgent || ""}`.toLowerCase();
+  return /(mac|iphone|ipad|ipod)/.test(platform) ? "⌘K" : "Ctrl K";
 };
 
 export const AppView = ({
@@ -42,7 +52,12 @@ export const AppView = ({
   authUser,
   onSignOut,
   menuOverride,
+  onSearchQueryChange,
 }: Props): React.JSX.Element => {
+  const headerRef = useRef<HTMLElement | null>(null);
+  const mainSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const actionsSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const drawerSearchInputRef = useRef<HTMLInputElement | null>(null);
   const isDark = themeMode === "dark";
   const config = useMemo(
     () => resolveHeaderConfig(title, headings, menuOverride),
@@ -52,7 +67,10 @@ export const AppView = ({
   const megaMenu = config.menu;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeMobileGroup, setActiveMobileGroup] = useState<string>(megaMenu[0]?.id || "");
+  const [searchValue, setSearchValue] = useState("");
   const searchPlaceholder = "Search...";
+  const searchShortcut = useMemo(() => resolveSearchShortcut(), []);
+  const debouncedSearchValue = useDebouncedValue(searchValue, 280);
 
   const marqueeLabel = useMemo(() => {
     const items = headings.filter(Boolean).slice(0, config.marqueeMaxItems);
@@ -67,6 +85,55 @@ export const AppView = ({
   }, [megaMenu, activeMobileGroup]);
 
   useEscapeKey(() => setMobileMenuOpen(false), mobileMenuOpen);
+
+  useEffect(() => {
+    onSearchQueryChange?.(debouncedSearchValue.trim());
+  }, [debouncedSearchValue, onSearchQueryChange]);
+
+  const handleSearchValueChange = useCallback((next: string) => {
+    setSearchValue(next);
+  }, []);
+
+  const focusSearchInput = useCallback(() => {
+    const isVisible = (input: HTMLInputElement | null) =>
+      Boolean(input && (input.offsetParent !== null || input.getClientRects().length > 0));
+
+    const candidates = [
+      mobileMenuOpen ? drawerSearchInputRef.current : null,
+      actionsSearchInputRef.current,
+      mainSearchInputRef.current,
+      headerRef.current?.querySelector('input[type="search"]') as HTMLInputElement | null,
+    ];
+
+    const target = candidates.find((input) => isVisible(input)) || null;
+    if (!target) return;
+
+    target.focus();
+    if (typeof target.select === "function") {
+      target.select();
+    }
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (event.key.toLowerCase() !== "k") return;
+
+      const target = event.target as HTMLElement | null;
+      const isEditable =
+        Boolean(target?.isContentEditable) ||
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "SELECT";
+      if (isEditable) return;
+
+      event.preventDefault();
+      focusSearchInput();
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [focusSearchInput]);
 
   useEffect(() => {
     const desktop = window.matchMedia("(min-width: 1100px)");
@@ -85,37 +152,57 @@ export const AppView = ({
   }, []);
 
   useEffect(() => {
-    if (!mobileMenuOpen) {
-      document.body.style.removeProperty("overflow");
-      return;
-    }
-    document.body.style.overflow = "hidden";
+    if (!mobileMenuOpen || typeof document === "undefined") return;
+
+    const body = document.body;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const lockKey = "data-hdr-lock-scroll-y";
+
+    body.setAttribute(lockKey, String(scrollY));
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+
     return () => {
-      document.body.style.removeProperty("overflow");
+      const lockedY = Number(body.getAttribute(lockKey) || "0");
+      body.removeAttribute(lockKey);
+      body.style.removeProperty("position");
+      body.style.removeProperty("top");
+      body.style.removeProperty("left");
+      body.style.removeProperty("right");
+      body.style.removeProperty("width");
+      body.style.removeProperty("overflow");
+      window.scrollTo(0, Number.isFinite(lockedY) ? lockedY : 0);
     };
   }, [mobileMenuOpen]);
 
   const rootStyle = {
-    "--hdr-surface": isDark ? "#0f172a" : "#ffffff",
-    "--hdr-surface-muted": isDark ? "#1e293b" : "#f8fafc",
-    "--hdr-surface-raised": isDark ? "#111d32" : "#ffffff",
-    "--hdr-border": isDark ? "#25324a" : "#e2e8f0",
-    "--hdr-text": isDark ? "#f8fafc" : "#0f172a",
-    "--hdr-text-muted": isDark ? "#9fb0c9" : "#667085",
-    "--hdr-text-subtle": isDark ? "#6b7f9c" : "#98a2b3",
+    "--hdr-surface": isDark ? "#0b1220" : "#ffffff",
+    "--hdr-surface-muted": isDark ? "#111827" : "#f8fafc",
+    "--hdr-surface-raised": isDark ? "#0f172a" : "#ffffff",
+    "--hdr-border": isDark ? "#273449" : "#dfe5ef",
+    "--hdr-text": isDark ? "#e2e8f0" : "#0f172a",
+    "--hdr-text-muted": isDark ? "#9fb0c9" : "#5b6472",
+    "--hdr-text-subtle": isDark ? "#8190a8" : "#94a3b8",
     "--hdr-brand-a": isDark ? "#34d399" : config.palette.brandA,
     "--hdr-brand-b": isDark ? "#22d3ee" : config.palette.brandB,
     "--hdr-brand-text": isDark ? "#05212d" : "#ffffff",
-    "--hdr-live-bg": isDark ? "rgba(52,211,153,.12)" : "#ecfdf5",
-    "--hdr-live-fg": isDark ? "#6ee7b7" : "#065f46",
-    "--hdr-live-border": isDark ? "rgba(52,211,153,.3)" : "#a7f3d0",
-    "--hdr-accent": config.palette.accent,
+    "--hdr-live-bg": "rgba(15,118,110,.08)",
+    "--hdr-live-fg": "#0f766e",
+    "--hdr-live-border": "rgba(15,118,110,.25)",
+    "--hdr-accent": "#0f766e",
+    "--hdr-accent-strong": "#115e59",
+    "--hdr-control-border": isDark ? "rgba(100,116,139,.52)" : "rgba(148,163,184,.5)",
+    "--hdr-control-surface": isDark ? "rgba(15,23,42,.82)" : "rgba(248,250,252,.9)",
     "--hdr-desktop-max": config.layout.desktopMaxWidth,
     "--hdr-shadow": isDark ? "0 22px 52px rgba(2,6,23,.55)" : "0 20px 48px rgba(15,23,42,.14)",
   } as CSSProperties;
 
   return (
-    <header className="hdr-shell" style={rootStyle}>
+    <header ref={headerRef} className="hdr-shell" style={rootStyle}>
       <HeaderTopBar
         liveLabel={localized.live}
         marqueeLabel={marqueeLabel}
@@ -140,13 +227,26 @@ export const AppView = ({
 
         <label className="hdr-search hdr-main-search">
           <span className="icon"><IconSearch /></span>
-          <input type="search" placeholder={searchPlaceholder} aria-label={searchPlaceholder} />
-          <kbd>⌘K</kbd>
+          <input
+            ref={mainSearchInputRef}
+            type="search"
+            placeholder={searchPlaceholder}
+            aria-label={searchPlaceholder}
+            value={searchValue}
+            onChange={(event) =>
+              handleSearchValueChange((event.target as HTMLInputElement).value)
+            }
+          />
+          <kbd>{searchShortcut}</kbd>
         </label>
 
         <HeaderActions
           locale={locale}
           searchPlaceholder={searchPlaceholder}
+          searchShortcut={searchShortcut}
+          searchValue={searchValue}
+          onSearchValueChange={handleSearchValueChange}
+          searchInputRef={actionsSearchInputRef}
           isDark={isDark}
           onToggleTheme={onToggleTheme}
           onLocaleChange={onLocaleChange}
@@ -185,6 +285,9 @@ export const AppView = ({
         title={localized.navigation}
         closeLabel={localized.closeNavigation}
         searchPlaceholder={searchPlaceholder}
+        searchValue={searchValue}
+        onSearchValueChange={handleSearchValueChange}
+        searchInputRef={drawerSearchInputRef}
         activeGroupId={activeMobileGroup}
         menu={megaMenu}
         onClose={() => setMobileMenuOpen(false)}

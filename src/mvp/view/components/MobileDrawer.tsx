@@ -8,6 +8,9 @@ type MobileDrawerProps = {
   title: string;
   closeLabel: string;
   searchPlaceholder: string;
+  searchValue: string;
+  onSearchValueChange: (value: string) => void;
+  searchInputRef: { current: HTMLInputElement | null };
   activeGroupId: string;
   menu: HeaderMenuGroup[];
   onClose: () => void;
@@ -19,6 +22,9 @@ export const MobileDrawer = ({
   title,
   closeLabel,
   searchPlaceholder,
+  searchValue,
+  onSearchValueChange,
+  searchInputRef,
   activeGroupId,
   menu,
   onClose,
@@ -47,7 +53,14 @@ export const MobileDrawer = ({
 
         <label className="hdr-search hdr-search-drawer">
           <span className="icon"><IconSearch /></span>
-          <input type="search" placeholder={searchPlaceholder} aria-label={searchPlaceholder} />
+          <input
+            ref={searchInputRef}
+            type="search"
+            placeholder={searchPlaceholder}
+            aria-label={searchPlaceholder}
+            value={searchValue}
+            onChange={(event) => onSearchValueChange((event.target as HTMLInputElement).value)}
+          />
         </label>
 
         <div className="hdr-drawer-tabs" role="tablist">

@@ -6,6 +6,7 @@ import { useEscapeKey } from "../hooks/useEscapeKey";
 import { IconArrowRight, IconChevron } from "./icons";
 
 type DesktopNavItemProps = {
+  key?: string;
   item: HeaderMenuGroup;
 };
 
