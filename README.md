@@ -30,6 +30,101 @@ Standalone CSS is loaded from system shell (`root-config`) by default:
 You can override in URL:
 `?system-origin=https://your-root-config-domain&cssv=123`
 
+## Runtime UI Config (Optional)
+
+You can override header branding/text without rebuilding by defining
+`window.__MFE_HEADER_CONFIG__` before loading `org-header-react.js`.
+
+Menu behavior:
+- Default: uses built-in mock menu (safe fallback).
+- Optional: set `menuSource.mode = "api"` to load menu from API.
+- Desktop width:
+  - Default max content width is `1440px`.
+  - Override via `layout.desktopMaxWidth` (e.g. `1320`, `"1280px"`, `"80rem"`).
+
+Example:
+
+```html
+<script>
+  window.__MFE_HEADER_CONFIG__ = {
+    palette: {
+      accent: "#16a34a",
+      brandA: "#0b3b2e",
+      brandB: "#14532d"
+    },
+    layout: {
+      desktopMaxWidth: 1320
+    },
+    menu: [
+      {
+        label: "Platform",
+        columns: [
+          {
+            title: "Workspace",
+            links: [
+              { text: "Projects", desc: "Manage apps", href: "/projects" },
+              { text: "Pipelines", desc: "CI/CD status", href: "/pipelines" }
+            ]
+          },
+          {
+            title: "Insights",
+            links: [
+              { text: "Analytics", desc: "Usage dashboards", href: "/analytics" }
+            ]
+          }
+        ]
+      }
+    ],
+    menuSource: {
+      mode: "api",
+      endpoint: "/api/header-menu",
+      timeoutMs: 4000
+    },
+    locale: {
+      vi: {
+        navigation: "Điều hướng hệ thống"
+      }
+    }
+  };
+</script>
+```
+
+Supported API response:
+
+```json
+{
+  "menu": [
+    {
+      "label": "Platform",
+      "columns": [
+        {
+          "title": "Workspace",
+          "links": [
+            { "text": "Projects", "desc": "Manage apps", "href": "/projects" }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+or direct array:
+
+```json
+[
+  {
+    "label": "Platform",
+    "columns": [
+      {
+        "title": "Workspace",
+        "links": [{ "text": "Projects", "desc": "Manage apps", "href": "/projects" }]
+      }
+    ]
+  }
+]
+```
+
 ## Scripts
 
 | Command | Description |

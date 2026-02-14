@@ -10,8 +10,12 @@ import {
 import type { AuthUser } from "@mfe-sols/auth";
 import { createModel } from "./mvp/model";
 import { createPresenter } from "./mvp/presenter";
-import { createQueryClient } from "./mvp/service";
+import { createQueryClient, fetchHeaderMenuFromApi } from "./mvp/service";
 import { AppView } from "./mvp/view";
+import {
+  type HeaderMenuGroupInput,
+  resolveHeaderRuntimeOptions,
+} from "./mvp/view/header.config";
 
 const getThemeFromElement = (target: Element | null): "light" | "dark" =>
   target?.getAttribute("data-theme") === "dark" ? "dark" : "light";
@@ -26,6 +30,8 @@ export default function Root() {
   });
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
   const [queryClient] = useState(() => createQueryClient());
+  const [menuOverride, setMenuOverride] = useState<HeaderMenuGroupInput[] | null>(null);
+  const runtimeOptions = useMemo(() => resolveHeaderRuntimeOptions(), []);
 
   /* defineDesignSystem + ensureTokens are now called at module scope in
      org-header-react.tsx (before React renders), eliminating FOUC. */
@@ -184,6 +190,21 @@ export default function Root() {
     setStoredLocale(next);
   }, []);
 
+  useEffect(() => {
+    const source = runtimeOptions.menuSource;
+    if (source.mode !== "api" || !source.endpoint) return;
+    let active = true;
+
+    void fetchHeaderMenuFromApi(source.endpoint, source.timeoutMs).then((menu) => {
+      if (!active || !menu || menu.length === 0) return;
+      setMenuOverride(menu);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [runtimeOptions]);
+
   const viewModel = useMemo(() => createPresenter(createModel()), [locale]);
 
   return (
@@ -197,6 +218,7 @@ export default function Root() {
           onLocaleChange={handleLocaleChange}
           authUser={authUser}
           onSignOut={handleSignOut}
+          menuOverride={menuOverride}
         />
       </main>
     </QueryClientProvider>
